@@ -41,7 +41,7 @@
 	        }
 
 	        function getVolumeDevice1() {
-			uri = 'https://192.168.1.184:80/httpapi.asp?command=getPlayerStatus';
+			uri = 'http://192.168.1.184:80/httpapi.asp?command=getPlayerStatus';
 			fetch( uri, initDetails)
 				.then(response => response.json())
 				.then(data => console.log(data));
@@ -62,8 +62,8 @@
 				</div>
 
 				<p class="card-text"></p>
-					<button value="https://192.168.1.184:80" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
-					<button value="https://192.168.1.184:80" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
+					<button value="http://192.168.1.184:80" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
+					<button value="http://192.168.1.184:80" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
 					<input type="range" min="1" max="100" value="10" class="slider" id="volume1" onchange="updateVolumeDevice1(this.value)">
 		  	</div>
 		</div>
