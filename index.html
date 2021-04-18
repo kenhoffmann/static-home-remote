@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+    <title>Test</title>
+
+  </head>
+  <body onload="getVolumeDevice1()">
+    <script>
+	        const initDetails = {
+	            method: 'GET',
+	            headers: {
+                "Content-Type": "text/plain"
+            	},
+	            mode: 'cors', // no-cors, *cors, same-origin
+				cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    			credentials: 'same-origin', // include, *same-origin, omit
+	            referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+	        }
+
+	        function mute(address) {
+		    uri = address + '/httpapi.asp?command=setPlayerCmd:mute:1';
+		    fetch( uri, initDetails);
+	        }
+
+	 		function unmute(address) {
+		    uri = address + '/httpapi.asp?command=setPlayerCmd:mute:0';
+		    fetch( uri, initDetails);
+			}
+
+			function updateVolumeDevice1(value) {
+		    uri = 'http://192.168.1.184/httpapi.asp?command=setPlayerCmd:vol:' + value;
+		    fetch( uri, initDetails);
+	        }
+
+	        function getVolumeDevice1() {
+			uri = 'http://192.168.1.184/httpapi.asp?command=getPlayerStatus';
+			fetch( uri, initDetails)
+				.then(response => response.json())
+				.then(data => console.log(data));
+
+	        }
+
+    </script>
+
+<!--document.getElementById("myRange").value = "75";-->
+
+	<div class="row">
+	  <div class="col-sm-6 offset-sm-2">
+
+		<div class="card text-center">
+		  	<div class="card-body">
+				<div class="card-title">
+					Inside - Volume Control
+				</div>
+
+				<p class="card-text"></p>
+					<button value="http://192.168.1.184" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
+					<button value="http://192.168.1.184" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
+					<input type="range" min="1" max="100" value="10" class="slider" id="volume1" onchange="updateVolumeDevice1(this.value)">
+		  	</div>
+		</div>
+
+		<div class="card text-center">
+			<div class="card-body">
+				<div class="card-title">
+					Outside - Volume Control
+				</div>
+
+				<p class="card-text"></p>
+					<button value="http://192.168.1.184" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
+					<button value="http://192.168.1.184" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
+					<input type="range" min="1" max="100" value="10" class="slider" id="volume1" onchange="updateVolumeDevice1(this.value)">
+			</div>
+		</div>
+	  </div>
+	</div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+  </body>
+</html>
