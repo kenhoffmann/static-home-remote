@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-	  
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -9,79 +8,168 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
-    <title>Test</title>
+    <title>Speaker Control</title>
 
   </head>
-  <body onload="getVolumeDevice1()">
+  <body onload="controlSpeaker('indoorSpeaker','get_multiroom_status',0);controlSpeaker('indoorSpeaker','get_player_status',0);controlSpeaker('outdoorSpeaker','get_player_status',0)">
     <script>
-	        const initDetails = {
-	            method: 'GET',
-	            headers: {
-                "Content-Type": "text/plain"
-            	},
-	            mode: 'cors', // no-cors, *cors, same-origin
-				cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    			credentials: 'same-origin', // include, *same-origin, omit
-	            referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-	        }
 
-	        function mute(address) {
-		    uri = address + '/httpapi.asp?command=setPlayerCmd:mute:1';
-		    fetch( uri, initDetails);
-	        }
+		//Proxy service locations
+		const indoorSpeaker = 'http://192.168.1.1:3000/service/httpapi.asp?command=';
+		const outdoorSpeaker = 'http://192.168.1.1:3001/service/httpapi.asp?command=';
 
-	 		function unmute(address) {
-		    uri = address + '/httpapi.asp?command=setPlayerCmd:mute:0';
-		    fetch( uri, initDetails);
+		const actionGetMultiRoomStatus = 'multiroom:getSlaveList';
+		const actionGetPlayerStatus = 'getPlayerStatus';
+		const actionSetMute = 'setPlayerCmd:mute:';
+		const actionSetVolume = 'setPlayerCmd:vol:';
+
+		//TODO Hard-code with actual address of outdoor speaker
+		const actionGroupSpeaker = 'ConnectMasterAp:JoinGroupMaster:eth192.168.1.XXX:wifi0.0.0.0';
+
+		const actionUnGroupSpeaker = 'multiroom:Ungroup';
+
+		const initDetails = {
+			method: 'GET',
+			headers: {
+			"Content-Type": "text/plain"
+			},
+			mode: 'cors',
+			cache: 'no-cache',
+			credentials: 'same-origin',
+			referrerPolicy: 'no-referrer',
+		}
+
+		function controlSpeaker(speaker,action,action_value) {
+
+			uri = '';
+
+			switch(speaker) {
+				case 'indoorSpeaker':
+					uri = indoorSpeaker;
+					break;
+				case 'outdoorSpeaker':
+					uri = outdoorSpeaker;
+					break;
 			}
 
-			function updateVolumeDevice1(value) {
-		    uri = 'https://192.168.1.184:80/httpapi.asp?command=setPlayerCmd:vol:' + value;
-		    fetch( uri, initDetails);
-	        }
+			switch(action) {
+				case 'get_multiroom_status':
+					uri = uri + actionGetMultiRoomStatus;
+					fetch( uri, initDetails)
+						.then(function(response){
+							return response.json();
+						})
+						.then(function(data){
 
-	        function getVolumeDevice1() {
-			uri = 'http://192.168.1.184:80/httpapi.asp?command=getPlayerStatus';
-			fetch( uri, initDetails)
-				.then(response => response.json())
-				.then(data => console.log(data));
+							if (data.slaves == 0){
+								//The speakers are not grouped
+								document.getElementById('speakerCardText').innerHTML = 'The speakers are not grouped.';
+								document.getElementById('speakerGroup').innerHTML = 'Group';
+								document.getElementById('speakerGroup').value = 'group_speaker';
+								document.getElementById('speakerGroup').name = 'indoorSpeaker';
 
-	        }
+							} else {
+								//The speakers are grouped
+								document.getElementById('speakerCardText').innerHTML = 'The speakers are grouped.';
+								document.getElementById('speakerGroup').innerHTML = 'Ungroup';
+								document.getElementById('speakerGroup').value = 'ungroup_speaker';
+								document.getElementById('speakerGroup').name = 'outdoorSpeaker';
+							}
 
+						})
+					break;
+				case 'get_player_status':
+					uri = uri + actionGetPlayerStatus;
+					fetch( uri, initDetails)
+						.then(function(response){
+							return response.json();
+						})
+						.then(function(data){
+
+							console.log(data);
+							console.log(data.vol);
+							console.log(data.mute);
+
+							//Set volume
+							document.getElementById(speaker + "Volume").value = data.vol;
+
+							//Set mute labels/values
+							if (data.mute == 0){
+								//Speaker isn't currently muted
+								document.getElementById(speaker + 'Mute').innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+								document.getElementById(speaker + 'Mute').value = 1;
+								document.getElementById(speaker + 'MuteLabel').innerHTML = '';
+							} else {
+								//Speaker is currently muted
+								document.getElementById(speaker + 'Mute').innerHTML = '<i class="bi bi-volume-off-fill"></i>';
+								document.getElementById(speaker + 'Mute').value = 0;
+								document.getElementById(speaker + 'MuteLabel').innerHTML = 'The speaker is muted.';
+							}
+						})
+					break;
+				case 'set_mute':
+					uri = uri + actionSetMute + action_value;
+					fetch( uri, initDetails);
+					break;
+				case 'set_volume':
+					uri = uri + actionSetVolume + action_value;
+					fetch( uri, initDetails);
+					break;
+				case 'group_speaker':
+					uri = uri + actionGroupSpeaker;
+					fetch( uri, initDetails);
+					break;
+				case 'ungroup_speaker':
+					uri = uri + actionUngroupSpeaker;
+					fetch( uri, initDetails);
+					break;
+			}
+		}
     </script>
 
-<!--document.getElementById("myRange").value = "75";-->
-
-	<div class="row">
-	  <div class="col-sm-6 offset-sm-2">
-
-		<div class="card text-center">
-		  	<div class="card-body">
-				<div class="card-title">
-					Inside - Volume Control
-				</div>
-
-				<p class="card-text"></p>
-					<button value="http://192.168.1.184:80" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
-					<button value="http://192.168.1.184:80" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
-					<input type="range" min="1" max="100" value="10" class="slider" id="volume1" onchange="updateVolumeDevice1(this.value)">
-		  	</div>
-		</div>
-
-		<div class="card text-center">
-			<div class="card-body">
-				<div class="card-title">
-					Outside - Volume Control
-				</div>
-
-				<p class="card-text"></p>
-					<button value="http://192.168.1.184:80" onclick="mute(this.value)" type="button" class="btn btn-primary">Mute</button>
-					<button value="http://192.168.1.184:80" onclick="unmute(this.value)" type="button" class="btn btn-primary">Unmute</button>
-					<input type="range" min="1" max="100" value="10" class="slider" id="volume1" onchange="updateVolumeDevice1(this.value)">
+	<div class="card columns col-md-6 p-3">
+	<div class="card text-center mb-4">
+		<div class="card-body">
+			<div class="card-title">
+				Living Room
 			</div>
+			<p class="card-text"></p>
+			<div>
+				<label for="indoorSpeakerVolume">Volume</label>
+				<input id="indoorSpeakerVolume" name="indoorSpeaker" type="range" min="1" max="100" value="10" class="slider" onchange="controlSpeaker(this.name,'set_volume',this.value)">
+			</div>
+
+			<button id="indoorSpeakerMute" name="indoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);controlSpeaker(this.name,'get_player_status',0);" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
+			<p class="card-text"><small id="indoorSpeakerMuteLabel" class="text-muted"></small></p>
 		</div>
-	  </div>
 	</div>
+
+	<div class="card text-center mb-4">
+				<div class="card-body">
+					<!--
+					<div class="card-title">
+						Speaker Grouping
+					</div>
+					-->
+					<button id="speakerGroup" name="indoorSpeaker" value="group_speaker" onclick="controlSpeaker(this.name,this.value,0)" type="button" class="btn btn-primary btn-block">Group</button>
+					<p class="card-text"><small id="speakerCardText" class="text-muted">The speakers are not grouped.</small></p>
+				</div>
+	</div>
+	<div class="card text-center mb-4">
+		<div class="card-body">
+			<div class="card-title">
+				Patio
+			</div>
+			<p class="card-text"></p>
+			<div>
+				<label for="outdoorSpeakerVolume">Volume</label>
+				<input id="outdoorSpeakerVolume" name="outdoorSpeaker" type="range" min="1" max="100" value="10" class="slider" onchange="controlSpeaker(this.name,'set_volume',this.value)">
+			</div>
+			<button id="outdoorSpeakerMute" name="outdoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);controlSpeaker(this.name,'get_player_status',0);" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
+			<p class="card-text"><small id="outdoorSpeakerMuteLabel" class="text-muted"></small></p>
+		</div>
+	</div>
+    </div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
