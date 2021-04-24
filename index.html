@@ -11,8 +11,11 @@
     <title>Speaker Control</title>
 
   </head>
-  <body onload="controlSpeaker('indoorSpeaker','get_multiroom_status',0);controlSpeaker('indoorSpeaker','get_player_status',0);controlSpeaker('outdoorSpeaker','get_player_status',0)">
+  <<body onload="getStatus();setInterval( function() { getStatus(); },2000);">
     <script>
+
+		// Is speaker currently groupd
+		inGroupedMode = false;
 
 		//Proxy service locations
 		const indoorSpeaker = 'http://192.168.1.1:3000/service/httpapi.asp?command=';
@@ -23,10 +26,17 @@
 		const actionSetMute = 'setPlayerCmd:mute:';
 		const actionSetVolume = 'setPlayerCmd:vol:';
 
-		//TODO Hard-code with actual address of outdoor speaker
-		const actionGroupSpeaker = 'ConnectMasterAp:JoinGroupMaster:eth192.168.1.XXX:wifi0.0.0.0';
+		const uriIndoorSpeakerVolume = 'http://192.168.1.1:3001/service/httpapi.asp?command=multiroom:SlaveVolume:192.168.1.50:';
+		const uriOutdoorSpeakerVolume = 'http://192.168.1.1:3001/service/httpapi.asp?command=setPlayerCmd:slave_vol:';
 
-		const actionUnGroupSpeaker = 'multiroom:Ungroup';
+		const uriIndoorSpeakerMute = 'http://192.168.1.1:3001/service/httpapi.asp?command=multiroom:SlaveMute:192.168.1.50:';
+		const uriOutdoorSpeakerMute = 'http://192.168.1.1:3001/service/httpapi.asp?command=setPlayerCmd:slave_mute:';
+
+		const uriGroupSpeaker = 'http://192.168.1.1:3000/service/httpapi.asp?command=ConnectMasterAp:JoinGroupMaster:eth:wifi192.168.1.51';
+		const uriUngroupSpeaker = 'http://192.168.1.1:3001/service/httpapi.asp?command=multiroom:SlaveKickout:192.168.1.50';
+		//const uriUnmaskGroupedSpeaker = 'http://192.168.1.1:3001/service/httpapi.asp?command=multiroom:SlaveUnMask:192.168.1.50';
+
+
 
 		const initDetails = {
 			method: 'GET',
@@ -37,6 +47,107 @@
 			cache: 'no-cache',
 			credentials: 'same-origin',
 			referrerPolicy: 'no-referrer',
+		}
+
+
+		function getStatus() {
+
+			uri = outdoorSpeaker + actionGetMultiRoomStatus;
+			fetch( uri, initDetails)
+				.then(function(response){
+					return response.json();
+				})
+				.then(function(data){
+
+					if (data.slaves == 0){
+						//The speakers are not grouped
+						document.getElementById('speakerCardText').innerHTML = 'The speakers are not grouped.';
+						document.getElementById('speakerGroup').innerHTML = 'Group';
+						document.getElementById('speakerGroup').value = 'group_speaker';
+						document.getElementById('speakerGroup').name = 'indoorSpeaker';
+						inGroupedMode = false;
+
+					} else {
+						//The speakers are grouped
+						document.getElementById('speakerCardText').innerHTML = 'The speakers are grouped.';
+						document.getElementById('speakerGroup').innerHTML = 'Ungroup';
+						document.getElementById('speakerGroup').value = 'ungroup_speaker';
+						document.getElementById('speakerGroup').name = 'outdoorSpeaker';
+						inGroupedMode = true;
+
+						//Update indoor
+						document.getElementById('indoorSpeakerVolume').value = data.slave_list[0].volume;
+
+						//Set mute labels/values
+						if (data.slave_list[0].mute == 0){
+							//Speaker isn't currently muted
+							document.getElementById('indoorSpeakerMute').innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+							document.getElementById('indoorSpeakerMute').value = 1;
+							document.getElementById('indoorSpeakerMuteLabel').innerHTML = '';
+						} else {
+							//Speaker is currently muted
+							document.getElementById('indoorSpeakerMute').innerHTML = '<i class="bi bi-volume-off-fill"></i>';
+							document.getElementById('indoorSpeakerMute').value = 0;
+							document.getElementById('indoorSpeakerMuteLabel').innerHTML = 'The speaker is muted.';
+						}
+					}
+
+			})
+
+
+			if (!inGroupedMode){
+				//Update indoor
+				uri = indoorSpeaker;
+				uri = uri + actionGetPlayerStatus;
+				fetch( uri, initDetails)
+					.then(function(response){
+						return response.json();
+					})
+					.then(function(data){
+
+						//Set volume
+						document.getElementById('indoorSpeakerVolume').value = data.vol;
+
+						//Set mute labels/values
+						if (data.mute == 0){
+							//Speaker isn't currently muted
+							document.getElementById('indoorSpeakerMute').innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+							document.getElementById('indoorSpeakerMute').value = 1;
+							document.getElementById('indoorSpeakerMuteLabel').innerHTML = '';
+						} else {
+							//Speaker is currently muted
+							document.getElementById('indoorSpeakerMute').innerHTML = '<i class="bi bi-volume-off-fill"></i>';
+							document.getElementById('indoorSpeakerMute').value = 0;
+							document.getElementById('indoorSpeakerMuteLabel').innerHTML = 'The speaker is muted.';
+						}
+				})
+			}
+
+			//Update outdoor
+			uri = outdoorSpeaker;
+			uri = uri + actionGetPlayerStatus;
+			fetch( uri, initDetails)
+				.then(function(response){
+					return response.json();
+				})
+				.then(function(data){
+
+					//Set volume
+					document.getElementById('outdoorSpeakerVolume').value = data.vol;
+
+					//Set mute labels/values
+					if (data.mute == 0){
+						//Speaker isn't currently muted
+						document.getElementById('outdoorSpeakerMute').innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
+						document.getElementById('outdoorSpeakerMute').value = 1;
+						document.getElementById('outdoorSpeakerMuteLabel').innerHTML = '';
+					} else {
+						//Speaker is currently muted
+						document.getElementById('outdoorSpeakerMute').innerHTML = '<i class="bi bi-volume-off-fill"></i>';
+						document.getElementById('outdoorSpeakerMute').value = 0;
+						document.getElementById('outdoorSpeakerMuteLabel').innerHTML = 'The speaker is muted.';
+					}
+			})
 		}
 
 		function controlSpeaker(speaker,action,action_value) {
@@ -53,81 +164,77 @@
 			}
 
 			switch(action) {
-				case 'get_multiroom_status':
-					uri = uri + actionGetMultiRoomStatus;
-					fetch( uri, initDetails)
-						.then(function(response){
-							return response.json();
-						})
-						.then(function(data){
-
-							if (data.slaves == 0){
-								//The speakers are not grouped
-								document.getElementById('speakerCardText').innerHTML = 'The speakers are not grouped.';
-								document.getElementById('speakerGroup').innerHTML = 'Group';
-								document.getElementById('speakerGroup').value = 'group_speaker';
-								document.getElementById('speakerGroup').name = 'indoorSpeaker';
-
-							} else {
-								//The speakers are grouped
-								document.getElementById('speakerCardText').innerHTML = 'The speakers are grouped.';
-								document.getElementById('speakerGroup').innerHTML = 'Ungroup';
-								document.getElementById('speakerGroup').value = 'ungroup_speaker';
-								document.getElementById('speakerGroup').name = 'outdoorSpeaker';
-							}
-
-						})
-					break;
-				case 'get_player_status':
-					uri = uri + actionGetPlayerStatus;
-					fetch( uri, initDetails)
-						.then(function(response){
-							return response.json();
-						})
-						.then(function(data){
-
-							console.log(data);
-							console.log(data.vol);
-							console.log(data.mute);
-
-							//Set volume
-							document.getElementById(speaker + "Volume").value = data.vol;
-
-							//Set mute labels/values
-							if (data.mute == 0){
-								//Speaker isn't currently muted
-								document.getElementById(speaker + 'Mute').innerHTML = '<i class="bi bi-volume-mute-fill"></i>';
-								document.getElementById(speaker + 'Mute').value = 1;
-								document.getElementById(speaker + 'MuteLabel').innerHTML = '';
-							} else {
-								//Speaker is currently muted
-								document.getElementById(speaker + 'Mute').innerHTML = '<i class="bi bi-volume-off-fill"></i>';
-								document.getElementById(speaker + 'Mute').value = 0;
-								document.getElementById(speaker + 'MuteLabel').innerHTML = 'The speaker is muted.';
-							}
-						})
-					break;
 				case 'set_mute':
-					uri = uri + actionSetMute + action_value;
-					fetch( uri, initDetails);
-					break;
+					if (!inGroupedMode){
+
+						uri = uri + actionSetMute + action_value;
+						fetch( uri, initDetails);
+						break;
+					} else {
+						if (speaker == 'indoorSpeaker')
+						{
+							fetch( uriIndoorSpeakerMute + action_value, initDetails);
+							break;
+						} else {
+							fetch( uriOutdoorSpeakerMute + action_value, initDetails);
+							break;
+						}
+					}
+
 				case 'set_volume':
-					uri = uri + actionSetVolume + action_value;
-					fetch( uri, initDetails);
-					break;
+					if (!inGroupedMode){
+						uri = uri + actionSetVolume + action_value;
+						fetch( uri, initDetails);
+						break;
+					} else {
+						if (speaker == 'indoorSpeaker'){
+							uri = uriIndoorSpeakerVolume + action_value;
+							fetch( uri, initDetails);
+							break;
+						}
+						else {
+							uri = uriOutdoorSpeakerVolume + action_value;
+							fetch( uri, initDetails);
+							break;
+						}
+					}
+
 				case 'group_speaker':
-					uri = uri + actionGroupSpeaker;
-					fetch( uri, initDetails);
+					fetch( uriGroupSpeaker, initDetails)
+						.then(function(response){
+							uri = uriUnmaskGroupedSpeaker;
+							//fetch( uriUnmaskGroupedSpeaker, initDetails);
+						})
 					break;
 				case 'ungroup_speaker':
-					uri = uri + actionUngroupSpeaker;
-					fetch( uri, initDetails);
+					fetch( uriUngroupSpeaker, initDetails);
 					break;
 			}
 		}
     </script>
 
 	<div class="card columns col-md-6 p-3">
+
+	<div class="card text-center mb-4">
+		<div class="card-body">
+			<div class="card-title">
+				Patio
+			</div>
+			<p class="card-text"></p>
+			<div>
+				<label for="outdoorSpeakerVolume">Volume</label>
+				<input id="outdoorSpeakerVolume" name="outdoorSpeaker" type="range" min="1" max="100" value="10" class="slider" onchange="controlSpeaker(this.name,'set_volume',this.value);getStatus();">
+			</div>
+			<button id="outdoorSpeakerMute" name="outdoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);getStatus();" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
+			<p class="card-text"><small id="outdoorSpeakerMuteLabel" class="text-muted"></small></p>
+		</div>
+	</div>
+	<div class="card text-center mb-4">
+				<div class="card-body">
+					<button id="speakerGroup" name="indoorSpeaker" value="group_speaker" onclick="controlSpeaker(this.name,this.value,0);getStatus();" type="button" class="btn btn-primary btn-block">Group</button>
+					<p class="card-text"><small id="speakerCardText" class="text-muted">The speakers are not grouped.</small></p>
+				</div>
+	</div>
 	<div class="card text-center mb-4">
 		<div class="card-body">
 			<div class="card-title">
@@ -139,34 +246,8 @@
 				<input id="indoorSpeakerVolume" name="indoorSpeaker" type="range" min="1" max="100" value="10" class="slider" onchange="controlSpeaker(this.name,'set_volume',this.value)">
 			</div>
 
-			<button id="indoorSpeakerMute" name="indoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);controlSpeaker(this.name,'get_player_status',0);" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
+			<button id="indoorSpeakerMute" name="indoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);getStatus();" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
 			<p class="card-text"><small id="indoorSpeakerMuteLabel" class="text-muted"></small></p>
-		</div>
-	</div>
-
-	<div class="card text-center mb-4">
-				<div class="card-body">
-					<!--
-					<div class="card-title">
-						Speaker Grouping
-					</div>
-					-->
-					<button id="speakerGroup" name="indoorSpeaker" value="group_speaker" onclick="controlSpeaker(this.name,this.value,0)" type="button" class="btn btn-primary btn-block">Group</button>
-					<p class="card-text"><small id="speakerCardText" class="text-muted">The speakers are not grouped.</small></p>
-				</div>
-	</div>
-	<div class="card text-center mb-4">
-		<div class="card-body">
-			<div class="card-title">
-				Patio
-			</div>
-			<p class="card-text"></p>
-			<div>
-				<label for="outdoorSpeakerVolume">Volume</label>
-				<input id="outdoorSpeakerVolume" name="outdoorSpeaker" type="range" min="1" max="100" value="10" class="slider" onchange="controlSpeaker(this.name,'set_volume',this.value)">
-			</div>
-			<button id="outdoorSpeakerMute" name="outdoorSpeaker" value=1 onclick="controlSpeaker(this.name,'set_mute',this.value);controlSpeaker(this.name,'get_player_status',0);" type="button" class="btn btn-outline-primary btn-lg"><i class="bi bi-volume-mute-fill"></i></button>
-			<p class="card-text"><small id="outdoorSpeakerMuteLabel" class="text-muted"></small></p>
 		</div>
 	</div>
     </div>
